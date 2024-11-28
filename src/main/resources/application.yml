@@ -1,2 +1,7 @@
-spring.application.name=pinshot
-
+spring:
+  application:
+    name: pinshot
+  data:
+    redis:
+      host: localhost
+      port: 6379
