@@ -32,7 +32,8 @@ public class SmsApiController {
     @PostMapping("/send")
     @Operation(summary = "인증 번호 요청", description = "전화번호 인증을 위한 인증 번호를 요청합니다")
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인증 번호 발송 성공", content = @Content(schema = @Schema(implementation = SmsResDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인증 번호 발송 성공",
+                    content = @Content(schema = @Schema(implementation = SmsResDto.class)))
     })
     public ResponseEntity<?> sendSmsCode(
             @Parameter(description = "인증 번호를 보낼 사용자의 전화 번호를 담고 있는 DTO")
@@ -44,7 +45,8 @@ public class SmsApiController {
     @PostMapping("/verify")
     @Operation(summary = "인증 번호 확인", description = "사용자가 입력한 인증 번호를 확인합니다")
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "전화 번호 인증 성공", content = @Content(schema = @Schema(implementation = SmsResDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "전화 번호 인증 성공",
+                    content = @Content(schema = @Schema(implementation = SmsResDto.class)))
     })
     public ResponseEntity<?> verifySmsCode(
             @Parameter(description = "사용자가 입력한 인증 번호를 담고 있는 DTO")

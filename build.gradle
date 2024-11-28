@@ -34,6 +34,9 @@ dependencies {
     // PostgreSQL
     runtimeOnly 'org.postgresql:postgresql'
 
+    // redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     runtimeOnly 'com.h2database:h2'
 
     // Lombok

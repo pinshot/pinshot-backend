@@ -1,4 +1,4 @@
-package com.example.pinshot.global.Config;
+package com.example.pinshot.global.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
-    // http://localhost:8080/swagger-ui/index.html
     @Bean
     public OpenAPI openAPI(){
+        // JWT 설정
         String jwt = "JWT";
         SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwt);
         Components components = new Components().addSecuritySchemes(jwt, new SecurityScheme()
@@ -30,9 +30,12 @@ public class SwaggerConfig {
     }
 
     private Info apiInfo(){
+        // swagger ui 설정
         return new Info()
                 .title("Pin-Shot API Document")
                 .description("Pin-Shot Swagger UI")
                 .version("1.0.0");
     }
+
+    // 접속 : http://localhost:8080/swagger-ui/index.html
 }
