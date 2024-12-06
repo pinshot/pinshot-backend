@@ -50,7 +50,6 @@ dependencies {
 
     // coolsms
     implementation 'net.nurigo:sdk:4.3.2'
-    implementation 'net.nurigo:javaSDK:2.2'
 }
 
 tasks.named('test') {

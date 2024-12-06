@@ -4,6 +4,7 @@ import com.example.pinshot.domain.sms.dto.request.SmsSendRequest;
 import com.example.pinshot.domain.sms.dto.request.SmsVerifyRequest;
 import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
 import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
+import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -12,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
-
 
 @Service
 @Transactional(readOnly = true)
@@ -28,7 +28,6 @@ public class SmsServiceImpl implements SmsService{
         // 1. random을 통해 인증번호 6자리를 만든다
         // 2. redis에 smsSendRequest를 통해 얻은 전화번호와 random을 통해 만든 인증번호를 set과 ttl을 통해 저장
         // 3. 인증번호를 sms api의 문자 내용에 넣어서 전송 (이 때 문자 발송 api 연동)
-        log.info("[SmsService] sendSms");
         SecureRandom secureRandom = new SecureRandom();
         int verifyCode = secureRandom.nextInt(900000) + 100000; // 6자리 난수의 인증번호 생성
 
@@ -49,11 +48,8 @@ public class SmsServiceImpl implements SmsService{
         // verifySms 로직 구성
         // 1. SmsVerifyRequest의 전화번호를 통해 redis에 있는 인증번호를 가져온다
         // 2. 그 인증번호와 SmsVerifyRequest의 인증번호를 비교하여 일치하면 인증 성공 여부를 true로 설정하고, 그 외엔 false로 설정하여 SmsVerifyResponse 반환
-        log.info("[SmsService] verifySms"); // 나중에 AOP를 이용해 로깅 작업 처리하기!!!
-
         String redisVerifyCode = redisTemplate.opsForValue().get(smsVerifyRequest.phoneNumber());
-        if(redisVerifyCode == null) throw new NullPointerException("인증 번호가 만료되었습니다");
-        // 나중에 AOP를 통한 커스텀 예외 처리 필요!!!!!! 이 때, 각 커스텀마다 log.error를 붙여주자
+        if(redisVerifyCode == null) throw new VerificationCodeExpiredException("인증 번호가 만료되었습니다"); // VerificationCodeExpiredException 내용 추가하기
 
         boolean verifySuccess = redisVerifyCode.equals(smsVerifyRequest.verifyNumber()); // 인증 번호 일치 여부 확인
 
