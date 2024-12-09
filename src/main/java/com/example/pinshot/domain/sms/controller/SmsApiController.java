@@ -3,6 +3,7 @@ package com.example.pinshot.domain.sms.controller;
 import com.example.pinshot.domain.sms.dto.request.SmsSendRequest;
 import com.example.pinshot.domain.sms.dto.request.SmsVerifyRequest;
 import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
+import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
 import com.example.pinshot.domain.sms.service.SmsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,7 +52,7 @@ public class SmsApiController {
     @Operation(summary = "인증 번호 확인", description = "사용자가 입력한 인증 번호를 확인합니다")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "전화 번호 인증 성공",
-                    content = @Content(schema = @Schema(implementation = SmsSendResponse.class)))
+                    content = @Content(schema = @Schema(implementation = SmsVerifyResponse.class)))
     })
     public ResponseEntity<?> verifySmsCode(
             @Parameter(description = "사용자가 입력한 인증 번호를 담고 있는 DTO")
