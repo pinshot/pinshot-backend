@@ -5,3 +5,9 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+coolsms:
+  api-key: NCSV5GKYWM1EQR4O
+  secret-key: OSUTCNMMFOFAXX8IKS17DCPDOYVQVWDN
+  sms-provider: https://api.coolsms.co.kr
+  sms-sender: 01073998508
