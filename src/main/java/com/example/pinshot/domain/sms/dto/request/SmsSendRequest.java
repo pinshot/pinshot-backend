@@ -4,6 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public record SmsSendRequest(
         // @Schema는 DTO 필드에 관한 간단한 설명
-        @Schema(description = "사용자의 전화 번호") String phoneNumber
+        @Schema(description = "사용자의 전화 번호", example = "01012345678") String phoneNumber
 ) {
 }

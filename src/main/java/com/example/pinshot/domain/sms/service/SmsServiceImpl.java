@@ -4,6 +4,7 @@ import com.example.pinshot.domain.sms.dto.request.SmsSendRequest;
 import com.example.pinshot.domain.sms.dto.request.SmsVerifyRequest;
 import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
 import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
+import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,7 @@ public class SmsServiceImpl implements SmsService{
     @Override
     public SmsVerifyResponse verifySms(SmsVerifyRequest smsVerifyRequest){
         String redisVerifyCode = redisTemplate.opsForValue().get(smsVerifyRequest.phoneNumber());
-        if(redisVerifyCode == null) throw new VerificationCodeExpiredException("인증 번호가 만료되었습니다"); // VerificationCodeExpiredException 내용 추가하기
+        if(redisVerifyCode == null) throw new VerificationCodeExpiredException(ErrorCode.EXPIRED_VERIFICATION_CODE); // VerificationCodeExpiredException 내용 추가하기
 
         boolean verifySuccess = redisVerifyCode.equals(smsVerifyRequest.verifyNumber()); // 인증 번호 일치 여부 확인
 
