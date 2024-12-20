@@ -6,7 +6,7 @@ import lombok.Getter;
 public class PinShotException extends RuntimeException{
     private final ErrorCode errorCode;
 
-    public PinShotException(ErrorCode errorCode){
+    public PinShotException(final ErrorCode errorCode){
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }

@@ -6,6 +6,8 @@ import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
 import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
 import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
+import com.example.pinshot.global.jwt.JwtUtil;
+import com.example.pinshot.global.jwt.TokenType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.nurigo.sdk.NurigoApp;
@@ -29,23 +31,20 @@ public class SmsServiceImpl implements SmsService{
     private String smsSender;
 
     private final DefaultMessageService messageService;
-    private final RedisTemplate<String, String> redisTemplate;
 
     public SmsServiceImpl(@Value("${coolsms.api-key}") String smsApiKey,
                           @Value("${coolsms.secret-key}") String smsSecretKey,
-                          @Value("${coolsms.sms-provider}") String smsProvider,
-                          RedisTemplate<String, String> redisTemplate){
+                          @Value("${coolsms.sms-provider}") String smsProvider){
         this.messageService = NurigoApp.INSTANCE.initialize(smsApiKey, smsSecretKey, smsProvider);
-        this.redisTemplate = redisTemplate;
     }
 
 
     @Override
     public SmsSendResponse sendSms(SmsSendRequest smsSendRequest){
         SecureRandom secureRandom = new SecureRandom();
-        int verifyCode = secureRandom.nextInt(900000) + 100000; // 6자리 난수의 인증 번호 생성
-        // redis에 전화 번호 : 인증 번호를 TTL 3분으로 설정하여 저장
-        redisTemplate.opsForValue().set(smsSendRequest.phoneNumber(), String.valueOf(verifyCode), 3, TimeUnit.MINUTES);
+        String verifyCode = String.valueOf(secureRandom.nextInt(900000) + 100000); // 6자리 난수의 인증 번호 생성
+        // 전화 번호를 이용해서 verifying Token 생성
+        String verifyingToken = JwtUtil.generateVerifyingToken(smsSendRequest.phoneNumber(), verifyCode);
 
         Message message = new Message();
         message.setFrom(smsSender); // SMS 문자(인증 번호) 보낼 전화 번호
@@ -55,9 +54,9 @@ public class SmsServiceImpl implements SmsService{
 
         if (messageSentResponse != null
                 && (messageSentResponse.getStatusCode().equals("2000") || messageSentResponse.getStatusCode().equals("4000"))) { // 2000 : 정상 접수, 4000 : 수신자가 메세지를 수신함
-            return new SmsSendResponse(smsSendRequest.phoneNumber(), true); // 문자 발송에 성공했을 경우
+            return new SmsSendResponse(true, verifyingToken); // 문자 발송에 성공했을 경우
         }
-        return new SmsSendResponse(smsSendRequest.phoneNumber(), false); // 그 외 나머지 문자 발송 실패
+        return new SmsSendResponse(false,""); // 그 외 나머지 문자 발송 실패
     }
 
     @Override

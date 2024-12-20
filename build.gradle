@@ -34,11 +34,6 @@ dependencies {
     // PostgreSQL
     runtimeOnly 'org.postgresql:postgresql'
 
-    // redis
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-
-    runtimeOnly 'com.h2database:h2'
-
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
@@ -51,6 +46,14 @@ dependencies {
     // coolsms
     implementation 'net.nurigo:sdk:4.3.2'
     implementation group: 'net.nurigo', name: 'javaSDK', version: '2.2'
+
+    // security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // jwt
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 }
 
 tasks.named('test') {
