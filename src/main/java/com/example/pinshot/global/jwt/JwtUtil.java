@@ -20,38 +20,29 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     private static SecretKey JWT_SECRET_KEY;
-    private static final long VERIFYING_TOKEN_EXPIRATION_TIME = 1000L * 60 * 3; // 3분
-    private static final long ACCESS_TOKEN_EXPIRATION_TIME = 1000L * 60 * 60; // 1시간
-    private static final long REFRESH_TOKEN_EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 7; // 1주일
-    private static final long SIGNUP_TOKEN_EXPIRATION_TIME = 1000L * 60 * 5; // 5분
+    private static final long VERIFYING_TOKEN_EXPIRATION_TIME = 1000L * 60 * 3; // VerifyingToken 만료 시간, 3분
+    private static final long ACCESS_TOKEN_EXPIRATION_TIME = 1000L * 60 * 60; // AccessToken 만료 시간, 1시간
+    private static final long REFRESH_TOKEN_EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 7; // RefreshToken 만료 시간, 1주일
+    private static final long SIGNUP_TOKEN_EXPIRATION_TIME = 1000L * 60 * 5; // SignUpToken 만료 시간, 5분
 
+    // jwt 시크릿 키 주입
     public JwtUtil(@Value("${jwt.secret}") String jwtSecretKey) {
         JWT_SECRET_KEY = Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));
     }
 
+    // jwt 토큰용 Claims 생성 (VerifyingToken 제외)
     private static Map<String, Object> createClaims(String phoneNumber){
         Map<String, Object> claims = new HashMap<>();
         claims.put("phoneNumber", phoneNumber);
         return claims;
     }
 
+    // VerifyingToken 토큰용 Claims 생성
     private static Map<String, Object> createVerifyingClaims(String phoneNumber, String verifyCode){
         Map<String, Object> verifyingClaims = new HashMap<>();
         verifyingClaims.put("phoneNumber", phoneNumber);
         verifyingClaims.put("verifyCode", verifyCode);
         return verifyingClaims;
-    }
-
-    // VerifyingToken 토큰 생성
-    public static String generateVerifyingToken(String phoneNumber, String verifyCode) {
-        long now = System.currentTimeMillis(); // JWT 토큰 생성 시간
-
-        return Jwts.builder()
-                .setIssuedAt(new Date(now))
-                .setClaims(createVerifyingClaims(phoneNumber, verifyCode))
-                .setExpiration(new Date(now + VERIFYING_TOKEN_EXPIRATION_TIME))
-                .signWith(JWT_SECRET_KEY)
-                .compact();
     }
 
     // 토큰 타입에 따른 각각의 jwt 토큰 생성 (VerifyingToken 제외)
@@ -75,6 +66,18 @@ public class JwtUtil {
                 .compact();
     }
 
+    // VerifyingToken 토큰 생성
+    public static String generateVerifyingToken(String phoneNumber, String verifyCode) {
+        long now = System.currentTimeMillis(); // JWT 토큰 생성 시간
+
+        return Jwts.builder()
+                .setIssuedAt(new Date(now))
+                .setClaims(createVerifyingClaims(phoneNumber, verifyCode))
+                .setExpiration(new Date(now + VERIFYING_TOKEN_EXPIRATION_TIME))
+                .signWith(JWT_SECRET_KEY)
+                .compact();
+    }
+
     // jwt 토큰에서 전화 번호 추출
     public static String getPhoneNumber(String token){
         Claims claims = Jwts.parserBuilder()
@@ -86,7 +89,18 @@ public class JwtUtil {
         return claims.get("phoneNumber", String.class);
     }
 
-    // jwt가 만료됐는지 확인
+    // jwt 토큰에서 인증 번호 추출 (VerifyingToken 토큰)
+    public static String getVerifyCode(String token){
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(JWT_SECRET_KEY)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("verifyCode", String.class);
+    }
+
+    // jwt 토큰이 만료됐는지 확인
     public static boolean checkExpired(String token){
         try{
             Jwts.parserBuilder()

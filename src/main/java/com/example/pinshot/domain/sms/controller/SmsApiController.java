@@ -55,9 +55,10 @@ public class SmsApiController {
                     content = @Content(schema = @Schema(implementation = SmsVerifyResponse.class)))
     })
     public ResponseEntity<?> verifySmsCode(
+            @RequestHeader("Verifying") String verifyingToken,
             @Parameter(description = "사용자가 입력한 인증 번호를 담고 있는 DTO")
             @RequestBody SmsVerifyRequest smsVerifyRequest
     ){
-        return ResponseEntity.ok(smsService.verifySms(smsVerifyRequest));
+        return ResponseEntity.ok(smsService.verifySms(verifyingToken, smsVerifyRequest));
     }
 }
