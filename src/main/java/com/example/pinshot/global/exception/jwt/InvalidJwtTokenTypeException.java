@@ -1,4 +1,4 @@
-package com.example.pinshot.global.exception.sms;
+package com.example.pinshot.global.exception.jwt;
 
 import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.PinShotException;
@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 @Getter
-public class VerificationCodeExpiredException extends PinShotException {
-    public VerificationCodeExpiredException(final ErrorCode errorCode) {
-        super(errorCode);
-    }
+public class InvalidJwtTokenTypeException extends PinShotException {
+  public InvalidJwtTokenTypeException(final ErrorCode errorCode) {
+    super(errorCode);
+  }
 }

@@ -9,5 +9,5 @@ public interface SmsService {
     // 인증 번호 전송 메소드
     SmsSendResponse sendSms(SmsSendRequest smsSendRequest);
     // 인증 번호 확인 메소드
-    SmsVerifyResponse verifySms(SmsVerifyRequest smsVerifyRequest);
+    SmsVerifyResponse verifySms(String verifyingToken, SmsVerifyRequest smsVerifyRequest);
 }

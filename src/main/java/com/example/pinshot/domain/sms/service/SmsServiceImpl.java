@@ -4,8 +4,9 @@ import com.example.pinshot.domain.sms.dto.request.SmsSendRequest;
 import com.example.pinshot.domain.sms.dto.request.SmsVerifyRequest;
 import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
 import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
+import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
-import lombok.RequiredArgsConstructor;
+import com.example.pinshot.global.jwt.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.nurigo.sdk.NurigoApp;
 import net.nurigo.sdk.message.model.Message;
@@ -13,12 +14,10 @@ import net.nurigo.sdk.message.request.SingleMessageSendingRequest;
 import net.nurigo.sdk.message.response.SingleMessageSentResponse;
 import net.nurigo.sdk.message.service.DefaultMessageService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @Transactional(readOnly = true)
@@ -28,23 +27,20 @@ public class SmsServiceImpl implements SmsService{
     private String smsSender;
 
     private final DefaultMessageService messageService;
-    private final RedisTemplate<String, String> redisTemplate;
 
     public SmsServiceImpl(@Value("${coolsms.api-key}") String smsApiKey,
                           @Value("${coolsms.secret-key}") String smsSecretKey,
-                          @Value("${coolsms.sms-provider}") String smsProvider,
-                          RedisTemplate<String, String> redisTemplate){
+                          @Value("${coolsms.sms-provider}") String smsProvider){
         this.messageService = NurigoApp.INSTANCE.initialize(smsApiKey, smsSecretKey, smsProvider);
-        this.redisTemplate = redisTemplate;
     }
 
 
+    // 인증 번호 요청 (sms 요청)
     @Override
     public SmsSendResponse sendSms(SmsSendRequest smsSendRequest){
         SecureRandom secureRandom = new SecureRandom();
-        int verifyCode = secureRandom.nextInt(900000) + 100000; // 6자리 난수의 인증 번호 생성
-        // redis에 전화 번호 : 인증 번호를 TTL 3분으로 설정하여 저장
-        redisTemplate.opsForValue().set(smsSendRequest.phoneNumber(), String.valueOf(verifyCode), 3, TimeUnit.MINUTES);
+        String verifyCode = String.valueOf(secureRandom.nextInt(900000) + 100000); // 6자리 난수의 인증 번호 생성
+        String verifyingToken = JwtUtil.generateVerifyingToken(smsSendRequest.phoneNumber(), verifyCode);
 
         Message message = new Message();
         message.setFrom(smsSender); // SMS 문자(인증 번호) 보낼 전화 번호
@@ -54,18 +50,25 @@ public class SmsServiceImpl implements SmsService{
 
         if (messageSentResponse != null
                 && (messageSentResponse.getStatusCode().equals("2000") || messageSentResponse.getStatusCode().equals("4000"))) { // 2000 : 정상 접수, 4000 : 수신자가 메세지를 수신함
-            return new SmsSendResponse(smsSendRequest.phoneNumber(), true); // 문자 발송에 성공했을 경우
+            return new SmsSendResponse(true, verifyingToken); // 문자 발송에 성공했을 경우
         }
-        return new SmsSendResponse(smsSendRequest.phoneNumber(), false); // 그 외 나머지 문자 발송 실패
+        return new SmsSendResponse(false,""); // 그 외 나머지 문자 발송 실패
     }
 
+    // 인증 번호 확인
     @Override
-    public SmsVerifyResponse verifySms(SmsVerifyRequest smsVerifyRequest){
-        String redisVerifyCode = redisTemplate.opsForValue().get(smsVerifyRequest.phoneNumber());
-        if(redisVerifyCode == null) throw new VerificationCodeExpiredException("인증 번호가 만료되었습니다"); // VerificationCodeExpiredException 내용 추가하기
-
-        boolean verifySuccess = redisVerifyCode.equals(smsVerifyRequest.verifyNumber()); // 인증 번호 일치 여부 확인
-
-        return new SmsVerifyResponse(smsVerifyRequest.phoneNumber(), verifySuccess);
+    public SmsVerifyResponse verifySms(String verifyingToken, SmsVerifyRequest smsVerifyRequest){
+        if(JwtUtil.checkExpired(verifyingToken)) throw new VerificationCodeExpiredException(ErrorCode.EXPIRED_VERIFICATION_CODE); // verifyingToken이 만료됐는지 확인
+        boolean verifySuccess = JwtUtil.getVerifyCode(verifyingToken).equals(smsVerifyRequest.verifyNumber()); // 인증 번호 일치 여부 확인
+        // 이 부분에서 member DB에 사용자 데이터가 있는지 확인 필요
+        // 만약 있다면, 로그인 성공 => SmsVerifyResponse의 builder에 accessToken, refreshToken 넣어서 리턴 (signUpToken은 null)
+        // 만약 없다면, 회원가입 필요 => SmsVerifyResponse의 builder에 signUpToken 넣어서 리턴 (accessToken, refreshToken은 null)
+        return SmsVerifyResponse.builder()
+                .phoneNumber(JwtUtil.getPhoneNumber(verifyingToken))
+                .verifySuccess(verifySuccess)
+                .accessToken(null)
+                .refreshToken(null)
+                .signUpToken(null)
+                .build();
     }
 }
