@@ -1,5 +1,6 @@
 package com.example.pinshot.domain.sms.service;
 
+import com.example.pinshot.domain.member.service.MemberService;
 import com.example.pinshot.domain.sms.dto.request.SmsSendRequest;
 import com.example.pinshot.domain.sms.dto.request.SmsVerifyRequest;
 import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
@@ -7,6 +8,7 @@ import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
 import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
 import com.example.pinshot.global.jwt.JwtUtil;
+import com.example.pinshot.global.jwt.TokenType;
 import lombok.extern.slf4j.Slf4j;
 import net.nurigo.sdk.NurigoApp;
 import net.nurigo.sdk.message.model.Message;
@@ -18,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.Objects;
+
+import static com.example.pinshot.global.jwt.TokenType.*;
 
 @Service
 @Transactional(readOnly = true)
@@ -27,11 +32,14 @@ public class SmsServiceImpl implements SmsService{
     private String smsSender;
 
     private final DefaultMessageService messageService;
+    private final MemberService memberService;
 
     public SmsServiceImpl(@Value("${coolsms.api-key}") String smsApiKey,
                           @Value("${coolsms.secret-key}") String smsSecretKey,
-                          @Value("${coolsms.sms-provider}") String smsProvider){
+                          @Value("${coolsms.sms-provider}") String smsProvider,
+                          MemberService memberService){
         this.messageService = NurigoApp.INSTANCE.initialize(smsApiKey, smsSecretKey, smsProvider);
+        this.memberService = memberService;
     }
 
 
@@ -63,12 +71,25 @@ public class SmsServiceImpl implements SmsService{
         // 이 부분에서 member DB에 사용자 데이터가 있는지 확인 필요
         // 만약 있다면, 로그인 성공 => SmsVerifyResponse의 builder에 accessToken, refreshToken 넣어서 리턴 (signUpToken은 null)
         // 만약 없다면, 회원가입 필요 => SmsVerifyResponse의 builder에 signUpToken 넣어서 리턴 (accessToken, refreshToken은 null)
+        String phoneNumber = JwtUtil.getPhoneNumber(verifyingToken);
+        boolean isExistMember = memberService.isExistMember(phoneNumber);
+
+        if(isExistMember) {
+            return SmsVerifyResponse.builder()
+                    .phoneNumber(phoneNumber)
+                    .verifySuccess(verifySuccess)
+                    .accessToken(JwtUtil.generateJwtToken(phoneNumber, ACCESS))
+                    .refreshToken(JwtUtil.generateJwtToken(phoneNumber, REFRESH))
+                    .signUpToken(null)
+                    .build();
+        }
+
         return SmsVerifyResponse.builder()
                 .phoneNumber(JwtUtil.getPhoneNumber(verifyingToken))
                 .verifySuccess(verifySuccess)
                 .accessToken(null)
                 .refreshToken(null)
-                .signUpToken(null)
+                .signUpToken(JwtUtil.generateJwtToken(phoneNumber, SIGNUP))
                 .build();
     }
 }
