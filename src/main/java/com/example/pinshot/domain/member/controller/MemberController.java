@@ -2,7 +2,6 @@ package com.example.pinshot.domain.member.controller;
 
 import com.example.pinshot.domain.member.dto.MemberSignUpRequest;
 import com.example.pinshot.domain.member.service.MemberService;
-import com.example.pinshot.domain.member.service.impl.MemberServiceImpl;
 import com.example.pinshot.global.base.ResponseData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,7 +32,7 @@ public class MemberController {
     public ResponseEntity<ResponseData> exist(@PathVariable String phoneNumber) {
         boolean isExistMember = memberService.isExistMember(phoneNumber);
 
-        if(isExistMember) {
+        if (isExistMember) {
             return ResponseEntity.ok(ResponseData.of(SUCCESS, "Member exists"));
         }
 
@@ -49,6 +48,5 @@ public class MemberController {
     public ResponseEntity<ResponseData> signup(@Valid @RequestBody MemberSignUpRequest memberSignUpRequest) {
         return ResponseEntity.ok(memberService.memberSignUp(memberSignUpRequest));
     }
-
 
 }
