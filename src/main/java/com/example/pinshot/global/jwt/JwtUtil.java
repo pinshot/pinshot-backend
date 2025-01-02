@@ -52,10 +52,6 @@ public class JwtUtil {
             case ACCESS -> ACCESS_TOKEN_EXPIRATION_TIME;
             case REFRESH ->  REFRESH_TOKEN_EXPIRATION_TIME;
             case SIGNUP -> SIGNUP_TOKEN_EXPIRATION_TIME;
-            default -> {
-                log.error("잘못된 토큰 타입입니다: {}", tokenType);
-                throw new InvalidJwtTokenTypeException(ErrorCode.INVALID_JWT_TOKEN_TYPE);
-            }
         };
 
         return Jwts.builder()

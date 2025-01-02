@@ -9,5 +9,7 @@ public interface MemberService {
     @Transactional(readOnly = true)
     boolean isExistMember(String phoneNumber);
 
-    ResponseData memberSignUp(MemberSignUpRequest memberSignUpRequest);
+    String generateSignUpToken(String phoneNumber);
+
+    ResponseData memberSignUp(MemberSignUpRequest memberSignUpRequest, String signUpToken);
 }

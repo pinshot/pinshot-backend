@@ -13,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static com.example.pinshot.global.base.types.ResponseCode.NOT_FOUND;
 import static com.example.pinshot.global.base.types.ResponseCode.SUCCESS;
 
@@ -36,7 +39,10 @@ public class MemberController {
             return ResponseEntity.ok(ResponseData.of(SUCCESS, "Member exists"));
         }
 
-        return ResponseEntity.ok(ResponseData.of(NOT_FOUND, "Member does not exist"));
+        Map<String, String> signUpToken = new HashMap<>();
+        signUpToken.put("signUpToken", memberService.generateSignUpToken(phoneNumber));
+
+        return ResponseEntity.ok(ResponseData.of(NOT_FOUND, "Member does not exist", signUpToken));
     }
 
     @Operation(summary = "사용자 회원가입", description = "사용자 회원가입 정보를 받고 DB에 저장")
@@ -45,8 +51,10 @@ public class MemberController {
                     content = @Content(schema = @Schema(implementation = ResponseData.class)))
     })
     @PostMapping("/signup")
-    public ResponseEntity<ResponseData> signup(@Valid @RequestBody MemberSignUpRequest memberSignUpRequest) {
-        return ResponseEntity.ok(memberService.memberSignUp(memberSignUpRequest));
+    public ResponseEntity<ResponseData> signup(
+            @RequestHeader("X-SignUp-Token") String signUpToken,
+            @Valid @RequestBody MemberSignUpRequest memberSignUpRequest) {
+        return ResponseEntity.ok(memberService.memberSignUp(memberSignUpRequest, signUpToken));
     }
 
 }

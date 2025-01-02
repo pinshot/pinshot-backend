@@ -8,7 +8,6 @@ import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
 import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
 import com.example.pinshot.global.jwt.JwtUtil;
-import com.example.pinshot.global.jwt.TokenType;
 import lombok.extern.slf4j.Slf4j;
 import net.nurigo.sdk.NurigoApp;
 import net.nurigo.sdk.message.model.Message;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.util.Objects;
 
 import static com.example.pinshot.global.jwt.TokenType.*;
 
