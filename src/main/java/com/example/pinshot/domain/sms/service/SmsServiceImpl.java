@@ -8,6 +8,7 @@ import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
 import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
 import com.example.pinshot.global.jwt.JwtUtil;
+import com.example.pinshot.global.jwt.common.UserVo;
 import lombok.extern.slf4j.Slf4j;
 import net.nurigo.sdk.NurigoApp;
 import net.nurigo.sdk.message.model.Message;
@@ -69,25 +70,25 @@ public class SmsServiceImpl implements SmsService{
         // 이 부분에서 member DB에 사용자 데이터가 있는지 확인 필요
         // 만약 있다면, 로그인 성공 => SmsVerifyResponse의 builder에 accessToken, refreshToken 넣어서 리턴 (signUpToken은 null)
         // 만약 없다면, 회원가입 필요 => SmsVerifyResponse의 builder에 signUpToken 넣어서 리턴 (accessToken, refreshToken은 null)
-        String phoneNumber = JwtUtil.getPhoneNumber(verifyingToken);
-        boolean isExistMember = memberService.isExistMember(phoneNumber);
+        UserVo userVo = JwtUtil.getUserVo(verifyingToken);
+        boolean isExistMember = memberService.isExistMember(userVo.phoneNumber());
 
         if(isExistMember) {
             return SmsVerifyResponse.builder()
-                    .phoneNumber(phoneNumber)
+                    .phoneNumber(userVo.phoneNumber())
                     .verifySuccess(verifySuccess)
-                    .accessToken(JwtUtil.generateJwtToken(phoneNumber, ACCESS))
-                    .refreshToken(JwtUtil.generateJwtToken(phoneNumber, REFRESH))
+                    .accessToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), ACCESS))
+                    .refreshToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), REFRESH))
                     .signUpToken(null)
                     .build();
         }
 
         return SmsVerifyResponse.builder()
-                .phoneNumber(JwtUtil.getPhoneNumber(verifyingToken))
+                .phoneNumber(JwtUtil.getUserVo(verifyingToken).phoneNumber())
                 .verifySuccess(verifySuccess)
                 .accessToken(null)
                 .refreshToken(null)
-                .signUpToken(JwtUtil.generateJwtToken(phoneNumber, SIGNUP))
+                .signUpToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), SIGNUP))
                 .build();
     }
 }

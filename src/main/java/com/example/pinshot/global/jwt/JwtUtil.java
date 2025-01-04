@@ -1,9 +1,9 @@
 package com.example.pinshot.global.jwt;
 
-import com.example.pinshot.global.exception.ErrorCode;
-import com.example.pinshot.global.exception.jwt.InvalidJwtTokenTypeException;
+import com.example.pinshot.global.jwt.common.UserVo;
+import com.example.pinshot.global.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -26,15 +26,14 @@ public class JwtUtil {
     private static final long SIGNUP_TOKEN_EXPIRATION_TIME = 1000L * 60 * 5; // SignUpToken 만료 시간, 5분
 
     // jwt 시크릿 키 주입
-    public JwtUtil(@Value("${jwt.secret}") String jwtSecretKey) {
+    public JwtUtil(@Value("${jwt.secret}") String jwtSecretKey, RefreshTokenRepository tokenRepository) {
         JWT_SECRET_KEY = Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     // jwt 토큰용 Claims 생성 (VerifyingToken 제외)
     private static Map<String, Object> createClaims(String phoneNumber){
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("phoneNumber", phoneNumber);
-        return claims;
+
+        return Jwts.claims().setSubject(Aes256Util.encrypt(phoneNumber));
     }
 
     // VerifyingToken 토큰용 Claims 생성
@@ -74,15 +73,15 @@ public class JwtUtil {
                 .compact();
     }
 
-    // jwt 토큰에서 전화 번호 추출
-    public static String getPhoneNumber(String token){
+    // jwt 토큰에서 사용자 정보 추출
+    public static UserVo getUserVo(String token){
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(JWT_SECRET_KEY)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
 
-        return claims.get("phoneNumber", String.class);
+        return new UserVo(Aes256Util.decrypt(claims.getSubject()));
     }
 
     // jwt 토큰에서 인증 번호 추출 (VerifyingToken 토큰)
@@ -98,17 +97,11 @@ public class JwtUtil {
 
     // jwt 토큰이 만료됐는지 확인
     public static boolean checkExpired(String token){
-        try{
-            Jwts.parserBuilder()
-                    .setSigningKey(JWT_SECRET_KEY)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .getExpiration();
+        Jws<Claims> claimsJws = Jwts.parserBuilder()
+                .setSigningKey(JWT_SECRET_KEY)
+                .build()
+                .parseClaimsJws(token);
 
-            return false; // Jwts의 getExpiration()을 통과했다는 것은 jwt가 만료되지 않았다는 뜻이다
-        } catch(ExpiredJwtException e){
-            return true; // ExpiredJwtException이 발생하면 jwt가 만료되었다는 뜻이다
-        }
+        return claimsJws.getBody().getExpiration().before(new Date());
     }
 }
