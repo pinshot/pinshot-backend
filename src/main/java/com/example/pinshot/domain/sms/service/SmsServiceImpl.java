@@ -59,9 +59,9 @@ public class SmsServiceImpl implements SmsService{
 
         if (messageSentResponse != null
                 && (messageSentResponse.getStatusCode().equals("2000") || messageSentResponse.getStatusCode().equals("4000"))) { // 2000 : 정상 접수, 4000 : 수신자가 메세지를 수신함
-            return ResponseData.of(SUCCESS, "문자 발송에 성공하였습니다." , new SmsSendResponse(true, verifyingToken)); // 문자 발송에 성공했을 경우
+            return ResponseData.of(SUCCESS, "문자 발송에 성공하였습니다." , new SmsSendResponse(verifyingToken)); // 문자 발송에 성공했을 경우
         }
-        return ResponseData.of(ERROR, "문자 발송에 실패하였습니다.", new SmsSendResponse(false,"")); // 그 외 나머지 문자 발송 실패
+        return ResponseData.of(ERROR, "문자 발송에 실패하였습니다."); // 그 외 나머지 문자 발송 실패
     }
 
     // 인증 번호 확인
