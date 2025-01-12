@@ -5,6 +5,7 @@ import com.example.pinshot.domain.sms.dto.request.SmsSendRequest;
 import com.example.pinshot.domain.sms.dto.request.SmsVerifyRequest;
 import com.example.pinshot.domain.sms.dto.response.SmsSendResponse;
 import com.example.pinshot.domain.sms.dto.response.SmsVerifyResponse;
+import com.example.pinshot.global.base.ResponseData;
 import com.example.pinshot.global.exception.ErrorCode;
 import com.example.pinshot.global.exception.sms.VerificationCodeExpiredException;
 import com.example.pinshot.global.jwt.JwtUtil;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 
+import static com.example.pinshot.global.base.types.ResponseCode.*;
 import static com.example.pinshot.global.jwt.TokenType.*;
 
 @Service
@@ -44,7 +46,7 @@ public class SmsServiceImpl implements SmsService{
 
     // 인증 번호 요청 (sms 요청)
     @Override
-    public SmsSendResponse sendSms(SmsSendRequest smsSendRequest){
+    public ResponseData<SmsSendResponse> sendSms(SmsSendRequest smsSendRequest){
         SecureRandom secureRandom = new SecureRandom();
         String verifyCode = String.valueOf(secureRandom.nextInt(900000) + 100000); // 6자리 난수의 인증 번호 생성
         String verifyingToken = JwtUtil.generateVerifyingToken(smsSendRequest.phoneNumber(), verifyCode);
@@ -57,38 +59,38 @@ public class SmsServiceImpl implements SmsService{
 
         if (messageSentResponse != null
                 && (messageSentResponse.getStatusCode().equals("2000") || messageSentResponse.getStatusCode().equals("4000"))) { // 2000 : 정상 접수, 4000 : 수신자가 메세지를 수신함
-            return new SmsSendResponse(true, verifyingToken); // 문자 발송에 성공했을 경우
+            return ResponseData.of(SUCCESS, "문자 발송에 성공하였습니다." , new SmsSendResponse(true, verifyingToken)); // 문자 발송에 성공했을 경우
         }
-        return new SmsSendResponse(false,""); // 그 외 나머지 문자 발송 실패
+        return ResponseData.of(ERROR, "문자 발송에 실패하였습니다.", new SmsSendResponse(false,"")); // 그 외 나머지 문자 발송 실패
     }
 
     // 인증 번호 확인
     @Override
-    public SmsVerifyResponse verifySms(String verifyingToken, SmsVerifyRequest smsVerifyRequest){
+    public ResponseData<SmsVerifyResponse> verifySms(String verifyingToken, SmsVerifyRequest smsVerifyRequest){
         if(JwtUtil.checkExpired(verifyingToken)) throw new VerificationCodeExpiredException(ErrorCode.EXPIRED_VERIFICATION_CODE); // verifyingToken이 만료됐는지 확인
-        boolean verifySuccess = JwtUtil.getVerifyCode(verifyingToken).equals(smsVerifyRequest.verifyNumber()); // 인증 번호 일치 여부 확인
-        // 이 부분에서 member DB에 사용자 데이터가 있는지 확인 필요
-        // 만약 있다면, 로그인 성공 => SmsVerifyResponse의 builder에 accessToken, refreshToken 넣어서 리턴 (signUpToken은 null)
-        // 만약 없다면, 회원가입 필요 => SmsVerifyResponse의 builder에 signUpToken 넣어서 리턴 (accessToken, refreshToken은 null)
+        boolean verifySuccess = JwtUtil.getVerifyCode(verifyingToken).verifyCode().equals(smsVerifyRequest.verifyNumber()); // 인증 번호 일치 여부 확인
+
         UserVo userVo = JwtUtil.getUserVo(verifyingToken);
         boolean isExistMember = memberService.isExistMember(userVo.phoneNumber());
 
-        if(isExistMember) {
-            return SmsVerifyResponse.builder()
-                    .phoneNumber(userVo.phoneNumber())
-                    .verifySuccess(verifySuccess)
-                    .accessToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), ACCESS))
-                    .refreshToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), REFRESH))
-                    .signUpToken(null)
-                    .build();
-        }
+        if(verifySuccess) {
+            if (isExistMember) {
+                return ResponseData.of(SUCCESS, "로그인에 성공하였습니다.", SmsVerifyResponse.builder()
+                        .phoneNumber(userVo.phoneNumber())
+                        .accessToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), ACCESS))
+                        .refreshToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), REFRESH))
+                        .signUpToken(null)
+                        .build());
+            }
 
-        return SmsVerifyResponse.builder()
-                .phoneNumber(JwtUtil.getUserVo(verifyingToken).phoneNumber())
-                .verifySuccess(verifySuccess)
-                .accessToken(null)
-                .refreshToken(null)
-                .signUpToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), SIGNUP))
-                .build();
+            return ResponseData.of(NOT_FOUND, "회원가입이 필요합니다.", SmsVerifyResponse.builder()
+                    .phoneNumber(JwtUtil.getUserVo(verifyingToken).phoneNumber())
+                    .accessToken(null)
+                    .refreshToken(null)
+                    .signUpToken(JwtUtil.generateJwtToken(userVo.phoneNumber(), SIGNUP))
+                    .build());
+        } else {
+            return ResponseData.of(INVALID, "인증 번호가 일치하지 않습니다.");
+        }
     }
 }

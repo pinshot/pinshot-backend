@@ -5,7 +5,6 @@ import lombok.Builder;
 
 public record SmsVerifyResponse(
         @Schema(description = "사용자의 전화번호") String phoneNumber,
-        @Schema(description = "사용자 인증 성공 여부") boolean verifySuccess,
         @Schema(description = "Access Token") String accessToken,
         @Schema(description = "Refresh Token") String refreshToken,
         @Schema(description = "SignUp Token") String signUpToken

@@ -1,5 +1,6 @@
 package com.example.pinshot.global.jwt;
 
+import com.example.pinshot.global.jwt.common.SmsVo;
 import com.example.pinshot.global.jwt.common.UserVo;
 import com.example.pinshot.global.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
@@ -39,8 +40,8 @@ public class JwtUtil {
     // VerifyingToken 토큰용 Claims 생성
     private static Map<String, Object> createVerifyingClaims(String phoneNumber, String verifyCode){
         Map<String, Object> verifyingClaims = new HashMap<>();
-        verifyingClaims.put("phoneNumber", phoneNumber);
-        verifyingClaims.put("verifyCode", verifyCode);
+        verifyingClaims.put("phoneNumber", Aes256Util.encrypt(phoneNumber));
+        verifyingClaims.put("verifyCode", Aes256Util.encrypt(verifyCode));
         return verifyingClaims;
     }
 
@@ -85,14 +86,15 @@ public class JwtUtil {
     }
 
     // jwt 토큰에서 인증 번호 추출 (VerifyingToken 토큰)
-    public static String getVerifyCode(String token){
+    public static SmsVo getVerifyCode(String token){
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(JWT_SECRET_KEY)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
 
-        return claims.get("verifyCode", String.class);
+        //
+        return new SmsVo(Aes256Util.decrypt(claims.get("verifyCode", String.class)));
     }
 
     // jwt 토큰이 만료됐는지 확인
